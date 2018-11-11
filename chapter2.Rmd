@@ -1,7 +1,111 @@
-# Insert chapter 2 title here
+# Regression and Model Validation
 
-*Describe the work you have done this week and summarize your learning.*
 
-- Describe your work and results clearly. 
-- Assume the reader has an introductory course level understanding of writing and reading R code as well as statistical methods
-- Assume the reader has no previous knowledge of your data or the more advanced methods you are using  
+## Introducing the Data
+
+
+```{r, message=FALSE, warning=FALSE}
+
+library(dplyr)
+lrn14 <- read.table("http://s3.amazonaws.com/assets.datacamp.com/production/course_2218/datasets/learning2014.txt ", sep=",", header=TRUE)
+dim(lrn14)
+
+```
+
+We are examinig a dataset that has information about students' attitudes towards learning statistics. The dataset has `r dim(lrn14)[2]` variables and `r dim(lrn14)[1]` observations. We know the age, gender and how many points each students got in the exam. In addition, we we have divided the questions measuring student's attitude toward learning into three subcategories: deep, strategic and surface learning. Each of these three variables illustrates the average of a student's answers to questions in each category in a scale from 1 to 5. Click [here][id] to learn more about the variables. 
+
+[id]: http://www.helsinki.fi/~kvehkala/JYTmooc/JYTOPKYS3-meta.txt
+
+
+##  Overview of the Data
+
+Now let us examine the data more in detail. From the graph below we can make following statements:
+
+  + We can see that we have nearly twice as much female students than male students. We can also see that the most of the students in our data are between 20 and 30 years old an that male students are on the average slightly older than female students.
+
+  + Male students have on the average a slightly better general attitude towards statistics than female students. The average attitude is `r round(mean(lrn14$attitude[lrn14$gender == "M"]),1)` for male students and `r round(mean(lrn14$attitude[lrn14$gender == "F"]),1)` for female students.
+  
+  + Questions related to different types of learning have almost no difference between female and male students. The only exception being surface learning, where we can see a clearly smaller variance  and higher mean among female students. 
+  
+  + The average amount of points in the final exam is `r round(mean(lrn14$points),1)`. Male students were slightly better with an average of `r round(mean(lrn14$points[lrn14$gender == "M"]),1)`. 
+
+
+
+```{r, message=FALSE, warning=FALSE}
+library(ggplot2)
+library(GGally)
+
+ggpairs(lrn14, mapping = aes(col = gender, alpha = 0.3),
+            lower = list(combo = wrap("facethist", bins = 20)))
+
+```
+
+
+## Fitting the Regression Model
+
+
+We will build a regression model that has exam points as dependent variable. We will choose three variables correlated highly with points and use them as the explanatory variables in our model. The three most highly correlated variables are attitude, stra and surf. 
+
+The variable attitude is statistically significant with 0.1% confidence level. The other two variables are not statistically significant on their own. In order to find out whether a model with fewer variables would be better, we will have to carry out a F-test. So we will test the null hypothesis that the coefficients of the variables stra and surf are not statistically different from zero against hypothesis that either both or one of them is.  The F-statistics related to this question is 0.18 so we fail to reject the null hypothesis. This means that a model with just the attitude variable as an explanatory variable would be more suitable.
+
+
+```{r, message=FALSE, warning=FALSE}
+
+library(sandwich)
+library(lmtest)
+library(car)
+
+model_1 <- lm(points ~ attitude + stra + surf, data = lrn14)
+summary(model_1)
+linearHypothesis(model_1, c("surf = 0", "stra = 0"))  
+
+```
+
+
+## Model Interpretation
+
+
+```{r, message=FALSE, warning=FALSE}
+
+model_2 <- lm(points ~ attitude, data = lrn14)
+summary(model_2)
+
+```
+
+
+
+Our fitted model is: points = 11.6 + 3.5*attitude
+
++ The coefficient attached to the variable attitude is `r round(coef(model_2)[[2]], 1)` which means that a one point increase in the general attitude towards statistics increases exam points by `r round(coef(model_2)[[1]], 1)` points. 
+
++ The intercept is `r round(coef(model_2)[[1]], 1)` which illustrates a student's exam points in the hypothetical situation where his or her attitude towards statistics would be zero. 
+
++ The multiple R-squared of our model is 0.19 which means that almost 20% of the variance of our dependent variable is explained by our explanatory variables. 
+
+
+## Analysing the Diagnostic Plots
+
+We can examine the normality assumption by examining the QQ-plot. We can see that our observations fit the line quite nice except at the start and end of the line. Based on this plot we can assume that the errors are normally distributed.
+
+```{r}
+plot(model_2, which= c(2))
+```
+
+
+Another assumption of the linear regression model is that the size of error does not depend on the value of the explanatory variables. We can see whether this assumption holds by examining the Residuals vs Fitted plot. We cannot find a clear pattern in the distribution of the errors so it is safe to state that this assumption holds. 
+
+
+```{r, message=FALSE, warning=FALSE}
+plot(model_2, which= c(1))
+```
+
+
+The Residual vs Leverage plot allows us to study whether any observation has relatively higher leverage than others. We can easily see that there is no single observations that stands out.
+
+
+```{r}
+plot(model_2, which= c(5))
+```
+
+
+
