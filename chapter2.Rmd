@@ -12,9 +12,9 @@ dim(lrn14)
 
 ```
 
-We are examinig a dataset that has information about students' attitudes towards learning statistics. The dataset has `r dim(lrn14)[2]` variables and `r dim(lrn14)[1]` observations. We know the age, gender and how many points each students got in the exam. In addition, we we have divided the questions measuring student's attitude toward learning into three subcategories: deep, strategic and surface learning. Each of these three variables illustrates the average of a student's answers to questions in each category in a scale from 1 to 5. Click [here][id] to learn more about the variables. 
+We are examinig a dataset that has information about students' attitudes towards learning statistics. The dataset has `r dim(lrn14)[2]` variables and `r dim(lrn14)[1]` observations. We know the age, gender and how many points each students got in the exam. In addition, we we have divided the questions measuring student's attitude toward learning into three subcategories: deep, strategic and surface learning. Each of these three variables illustrates the average of a student's answers to questions in each category in a scale from 1 to 5. Click [here][id2] to learn more about the variables. 
 
-[id]: http://www.helsinki.fi/~kvehkala/JYTmooc/JYTOPKYS3-meta.txt
+[id2]: http://www.helsinki.fi/~kvehkala/JYTmooc/JYTOPKYS3-meta.txt
 
 
 ##  Overview of the Data
