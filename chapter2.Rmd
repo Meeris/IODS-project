@@ -46,7 +46,7 @@ ggpairs(lrn14, mapping = aes(col = gender, alpha = 0.3),
 
 We will build a regression model that has exam points as dependent variable. We will choose three variables correlated highly with points and use them as the explanatory variables in our model. The three most highly correlated variables are attitude, stra and surf. 
 
-The variable attitude is statistically significant with 0.1% confidence level. The other two variables are not statistically significant on their own. In order to find out whether a model with fewer variables would be better, we will have to carry out a F-test. So we will test the null hypothesis that the coefficients of the variables stra and surf are not statistically different from zero against hypothesis that either both or one of them is.  The F-statistics related to this question is 0.18 so we fail to reject the null hypothesis. This means that a model with just the attitude variable as an explanatory variable would be more suitable.
+The variable attitude is statistically significant with 0.1% confidence level. The other two variables are not statistically significant on their own. In order to find out whether a model with fewer variables would be better, we will have to carry out a F-test. So we will test the null hypothesis that the coefficients of the variables stra and surf are not statistically different from zero against hypothesis that either both or one of them is. The p-value of the F-statistics related to this question is 0.18 so we fail to reject the null hypothesis even with 10 percent confidence level. This means that a model with just the attitude variable as an explanatory variable would be more suitable.
 
 
 ```{r, message=FALSE, warning=FALSE}
