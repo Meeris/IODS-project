@@ -1,0 +1,244 @@
+# Logistic Regression
+
+
+## Introducing the data
+
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+alc <- read.table("http://s3.amazonaws.com/assets.datacamp.com/production/course_2218/datasets/alc.txt",
+                  sep = ",", header = TRUE)
+colnames(alc)
+```
+
+The data what we are soon going to analyse is a about student alcohol consumption and school achievements. It is combined from two larger datasets about student achievement in two different courses (mathematics and Portugese language) in secondary education of two Portugese schools. In total, we have 382 observations and 35 variables. These variables consists of students spesific information such as age and sex, as well as information about his or hers family background and living habits. On top of this, we have the student's grades in periods 1 to 3 (average of the two courses). We have also created two variables describing how much alcohol the student uses in total and whether he or she is a high user. 
+
+
+## Alcohol consumption and other variables
+
+Let us explore the relationships between alcohol consumption and four other interesting variables. 
+
+
+Variable  | Prediction
+------------- | -------------
+Sex | Male students drink more tha female students and are more often high users
+Failures | The number of failures is bigger if alcohol use is high
+Absences | The number of absences is bigger if alcohol use is high
+Romantic | Students who are in a romantic relationship drink less
+
+
+## Graphical overview
+
++ We have nearly the same amount of female and male students, but there are more high alcohol users among male students as was predicted. X% of male students are high users compared to X% of female students.
+
++ The mean number of absences is 5.3 in the whole population. The number is clearly bigger among students who drink more. High users have nearly two times more absences of they are female and over two times if they are male. This corresponds nicely with our predictions. 
+
++ The mean number of past failures is 0.3. If we compare the means between high users and non-high-users, we can see that the number is about two times bigger among high users. Again, this is in line with our previous predictions.
+
++ There are more female students in romantic relationship than male students. Overall, there are more students not in a relationship than those who are. This is the case among high users as well as predicted. 
+
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+
+library(tidyr); library(dplyr); library(ggplot2)
+
+## Select interesting variables 
+variables <- c("sex","failures", "absences", "romantic", "high_use")
+alc_int <- select(alc, one_of(variables))
+
+## Table
+alc_int %>% group_by(high_use, sex) %>% summarise(count = n(), mean_fail = mean(failures),
+                                        mean_abs = mean(absences))
+
+```
+
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+
+library(tidyr); library(dplyr); library(ggplot2)
+
+# Distributions
+ggplot(data = alc, aes(x = high_use, fill = sex)) + geom_bar()  + facet_wrap("sex")
+ggplot(data = alc, aes(x = sex, fill = sex)) + geom_bar() 
+ggplot(data = alc, aes(x = absences, fill = sex)) + geom_bar()  + facet_wrap("sex")
+ggplot(data = alc, aes(x = failures, fill = sex)) + geom_bar()  + facet_wrap("sex")
+ggplot(data = alc, aes(x = romantic, fill = sex)) + geom_bar()  + facet_wrap("sex")
+
+```
+
+
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+
+library(tidyr); library(dplyr); library(ggplot2)
+## Boxplots
+
+g1 <- ggplot(alc, aes(x = high_use, y = romantic, col = sex)) 
+g1 + geom_boxplot() + ylab("grade") + ggtitle("Grades by alcohol consumption and sex" )
+
+g2 <- ggplot(alc, aes(x = high_use, y = absences, col = sex))
+g2 + geom_boxplot() + ggtitle("Student absences by alcohol consumption and sex")
+
+g3 <- ggplot(alc, aes(x = high_use, y = failures, col = sex))
+g3 + geom_boxplot() + ggtitle("Student health by alcohol consumption and sex")
+
+```
+
+
+
+## The Model
+
+
+Let us examine the summary of our fitted model:
+
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+
+## Fit the model and print the summary
+model_1 <- glm(high_use ~ failures + absences + sex + romantic, data = alc, family = "binomial")
+summary(model_1)
+
+```
+
+
+We can see that all but one of our coefficient are statistically different from zero. The coefficients of absences and gender are significant even with a confidence level of 0.1%. The coefficient of failures is significant with a 5% confidence level and the coefficient of romantic relationship is not significant even with a 10% level. This means that we could leave this variable from our model.
+
+If we apply the exponent function to our model parameters, We can interpret them as odds ratios. The confidence interval tells us that the value of the coefficient is within these limits with 95% of the time. 
+
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+
+library(dplyr)
+
+## Compute the odds ratios
+odds_ratio <- exp(coef(model_1))
+
+## Compute confidence intervals 
+confidence_intervals <- confint(model_1) %>% exp
+
+## Print out the odds ratios with their confidence intervals
+round(cbind(odds_ratio, confidence_intervals), 2)
+
+```
+
+
++ The intercept represents the likelyhood of being a high user for female students who are not in a romantic relationship and have no absences or past failures. As it is smaller than one, it means that individuals in this group are less likely to be high users than others.
+
++ Each additional past failure increases the likelyhood of being a high user. That is, student with 2 past failures is 1.51 times more likely to be a high user than a student with just one absence.
+
++ Each additional absence increases the likelyhood of being a high user. That is, student with 2 absences is 1.08 times more likely to be a high user than a student with just one absence.
+
++ Male students are 2.65 times more likely to be high users of alcohol than female students. 
+
++ Students in aromantic relationship are less likely to be high users of alcohol. It is important to note that the confidence interval of this variable includes the number zero, so we cannot know for sure what kind of impact better grades actually have.
+
+
+Now if we compare these results to our earlier predictions, we can see that they correspond eachother very nicely. Only deviation from our prediction is that the model suggests that the effect of romantic relationship might be ambigious. 
+
+
+## Testing the Predictive Power
+
+The model we are going explore is the following. We dropped the variable *romantic* from our model as it was not statistically significant.  
+
+high_use ~ failures + absences + sex
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+
+## Fit the model and print the summary
+model_2 <- glm(high_use ~ failures + absences + sex, data = alc, family = "binomial")
+summary(model_2)
+
+```
+
+
+Now we can test the predictive power of our model. As we can see from the table below, our model misclassified 12 non-high-users as high users and 86 high users to non-high-users. The model succeeded in predicting a high-users 26 times. The same results are displayed in the plot below labelled as "Actual values and the predictions".
+
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+
+## Predict the probability of high_use
+probabilities <- predict(model_2, type = "response")
+
+## Add the predicted probabilities to 'alc'
+alc <- mutate(alc, probability = probabilities)
+
+## Use the probabilities to add a prediction
+alc <- mutate(alc, prediction = probability > 0.5)
+
+## Tabulate the target variable versus the predictions
+table(high_use = alc$high_use, prediction = alc$prediction)
+
+```
+
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+
+library(dplyr); library(ggplot2)
+
+## Plot 'high_use' vs 'probability' 
+ggplot(alc, aes(x = probability, y = high_use, col = prediction)) + geom_point() + ggtitle("Actual values and the predictions")
+
+```
+
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+
+## Define a loss function (average prediction error)
+loss_func <- function(class, prob) {
+  n_wrong <- abs(class - prob) > 0.5
+  mean(n_wrong)
+}
+
+## Compute the average number of wrong predictions 
+loss_func(alc$high_use, alc$probability)
+
+```
+
+
+
+Now we can compute the average number of wrong predictions by defining a loss function. In this case the number is `r round(loss_func(alc$high_use, alc$probability),2)` which is relatively low. 
+
+### Model Prediction vs. Guessing
+
+We know that nearly on thrid of the students are high users of alcohol. No we can compare the performance of our model to a simple model that classifies every third person as a high user. Now we can see that the prediction error is nearly two times bigger. So at least our model is better at predicing high users than this simple guessing strategy.
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+## Create a logical vector of same length as observations
+guess <- rep( c(FALSE, FALSE, TRUE), 127)
+guess <- c(guess, FALSE)
+alc <- mutate(alc, Guess = guess)
+
+## Define a new loss function
+loss_func_2 <- function(class, prob) {
+  n_wrong <- alc$Guess != alc$high_use
+  mean(n_wrong)
+}
+
+## Compute the average number of wrong predictions 
+loss_func(alc$high_use, alc$Guess)
+```
+
+
+
+## Cross-Validation
+
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+
+# K-fold cross-validation
+library(boot)
+cv <- cv.glm(data = alc, cost = loss_func, glmfit = model_2, K = 10)
+
+# average number of wrong predictions in the cross validation
+cv$delta[1]
+
+```
+
+Now let us perform a 10-fold cross-validation on our model. The model has a test ser performance equal to the data Camp as the models have identical predictors. The prediction error is `r cv$delta[1]`
+
+
+  
+
+
+
+
+
