@@ -4,6 +4,31 @@
 knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning=FALSE)
 ```
 
+## Introducing the Data
+
+
+```{r}
+
+## Get the data
+setwd("/home/meeri/ODS/Data")
+human <- read.csv("human.csv", row.names = 1)
+
+```
+
+
+This week we are going to explore the human development index (HDI). Our dataset consists of  `r dim(human)[[1]] ` countries and `r dim(human)[[2]] ` variables. Here is the list of our variables:
+
+variable | Explication
+------------- | -------------
+Edu.r | Ratio of females and males with at least secondary education
+Lab.r  | Ratio of females and males in the labour force
+Life.exp | Life expectancy at birth
+Edu.exp | Expected years of schooling
+GNI.pc  | Gross National Income per capita
+Mat.mort | Maternal mortality ratio
+Ad.birth | Adolescent birth rate
+Rep | Percetange of female representatives in parliament
+
 
 ## Graphical Overview
 
@@ -16,11 +41,6 @@ From these two plots, we can make for example, the following statements:
 
 
 ```{r}
-
-## Get the data
-setwd("/home/meeri/ODS/Data")
-human <- read.csv("human.csv", row.names = 1)
-
 
 ## Plot matrix
 library(GGally)
