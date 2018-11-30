@@ -1,5 +1,6 @@
 ####  23.11.2018 / Meeri Seppä / IODS exercises for week four             
-####    There are two datasets; "Human development” and “Gender inequality” 
+####  There are two datasets; "Human development” and “Gender inequality” 
+####  http://s3.amazonaws.com/assets.datacamp.com/production/course_2218/datasets/human1.txt
 
 
 ## Read the data
@@ -33,21 +34,60 @@ colnames(gii) <- names_gii
 
 ## Create two new variables
 library(dplyr)
-gii <- mutate(gii, Edur.r = Edu2.f / Edu2.m)
+gii <- mutate(gii, Edu.r = Edu2.f / Edu2.m)
 gii <- mutate(gii, Lab.r = Lab.f / Lab.m)
 
 
 ## Join the two datasets
 human <- inner_join(hd, gii, by = "Country")
 
+
 ## Check the dimensions
 dim(human)
 
 
-## I think the correct number of variables is 18. The two datasets have 11 and 8 = 19  variables, so if
-## we use one of them as an identifier there has to be one less variable in the joined dataset. 
+
+#### Week 5 ####
+
+
+
+## Transform the variable GNI.pc as numeric
+library(stringr)
+human$GNI.pc <- str_replace(human$GNI.pc, pattern=",", replace ="") %>% as.numeric
+str(human$GNI.pc)  ## Check the result
+
+
+## Exclude unwanted variables
+keep <- colnames(human)[c(2,18,19,4,5,7,11,12,13)]
+human <- dplyr::select(human, one_of(keep))
+
+
+## Exclude rows with missing values
+human <- filter(human, complete.cases(human))
+
+
+## Exclude region observations
+last <- nrow(human) - 7
+human <- human[1:last, ]
+
+
+## Change row names and remove the country variable
+rownames(human) <- human$Country
+human <- select(human, -Country)
+
+
+## Check the dimensions
+dim(human)
 
 
 ## Save the data 
-write.csv(human, file = "human.csv")
+setwd("~/ODS/Data")
+write.csv(human, file = "human.csv", row.names = TRUE)
+
+
+## Check that the saved file is readable 
+read.csv("human.csv", row.names = 1)
+
+
+## Everything looks fine! 
 
