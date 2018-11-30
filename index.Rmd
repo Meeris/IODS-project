@@ -1,9 +1,9 @@
 ---
 title: "IODS course project"
+author: "Meeri Seppä"
 output:
   html_document:
     theme: cosmo
-    author: "Meeri"
     toc: true
     toc_depth: 2
     fig_caption: true
@@ -31,6 +31,12 @@ output:
 
 
 ```{r child = "chapter4.Rmd"}
+```
+
+***
+
+
+```{r child = "chapter5.Rmd"}
 ```
 
 ***

@@ -1,0 +1,178 @@
+# Dimensionality Reduction Techniques
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning=FALSE)
+```
+
+
+## Graphical Overview
+
+We will begin our analysis by examining our data graphically. We have two plot matrices below. From the first one, we can see the distributons of the variables in our dataset. The second one illustrates the correlations between the variables. The bigger the circle, the bigger the correlations of those variables. The color of the circles tells us the whether the correlation is negative (red) or positive (blue). 
+
+From these two plots, we can make for example, the following statements:
+
++ Countries that have longer life expectancy tend to have higher expected years of education and per capita GNI. 
++ Countries that have higher maternal mortality rate have lower life expectancy and more teenage pregnancies
+
+
+```{r}
+
+## Get the data
+setwd("/home/meeri/ODS/Data")
+human <- read.csv("human.csv", row.names = 1)
+
+
+## Plot matrix
+library(GGally)
+ggpairs(human)
+
+```
+
+```{r}
+
+## Correlation matrix 
+library(dplyr); library(corrplot);
+cor(human) %>% corrplot
+
+```
+
+
+## Principal Component Analysis I
+
+First, we will perform the principal component analysis (PCA) on the not standardized human data. If we examine the variability captured by each principal component seen below, we can see that the first component captures all of it. Now, if we take a look of our biplot, it doesn't seem to be desirable.
+
+
+```{r}
+
+## PCA
+pca_human <- prcomp(human)
+
+## Create summary of pca_human
+s <- summary(pca_human)
+
+## Rounded %
+pca_pr <- round(100*s$importance[2, ], digits = 1)
+knitr::kable(pca_pr, caption = 'Variability between dimensions')
+
+
+```
+
+
+```{r}
+
+## Create axis labels
+pc_lab <- paste0(names(pca_pr), " (", pca_pr, "%)")
+
+## Biplot
+biplot(pca_human, cex = c(0.8, 1), col = c("grey40", "deeppink2"), xlab = pc_lab[1], ylab = pc_lab[2])
+
+```
+
+_FIGURE I: The first PCA dimension seems to capture all of the variation_
+
+## Principal Component Analysis II
+
+Next, let's see how the resluts change, if we standardize the data before performing the analysis. The change is remarkable. Now we can see that some of the variance is captured by the other variables as well.  The biplot looks more readable as well. This change is due the fact that one of the variables in the data (GNI.pc) has largely higher variance compared to the others, and this confuses the model. 
+
+```{r}
+
+## Standardize 
+human_std <- scale(human)
+
+## PCA
+pca_human_std <- prcomp(human_std)
+
+## Create a summary of pca_human_std
+s_std <- summary(pca_human_std)
+
+## Rounded %
+pca_pr_std <- round(100*s_std$importance[2, ], digits = 1)
+
+knitr::kable(pca_pr_std, caption = 'Variability between dimensions')
+
+```
+
+```{r}
+
+## Create axis labels
+pc_lab_std <- paste0(names(pca_pr_std), " (", pca_pr_std, "%)")
+
+## Biplot
+biplot(pca_human_std, cex = c(0.8, 1), col = c("lightsteelblue4", "goldenrod1"), xlab = pc_lab_std[1], ylab = pc_lab_std[2])
+
+```
+
+_FIGURE II: The first PCA dimension has variables stretching to both directions. Maternal mortality and teenage pregnancies contribute to the opposite direction than others such as life expectancy. The number of female representatives in the parliament contributes to the second PCA dimension along with labor market ratio._ 
+
+## Interpretation
+
+Now, we will analyse the results from our second PCA. If we take a closer look of the biplot
+of our second analysis, we can see that the variables **Rep** and **Lab.r** contribute to the second dimension. Variables **mat.mort** and **Ad.birth** contribute to the first dimension but to the opposite direction than the rest of the variables. These results can also be seen if examine the summary of our analysis below; The second principal component dimension has two clearly higher values and the first has two clearly positive while others are negative or close to zero. 
+
+
+```{r}
+
+a <- round(pca_human_std$rotation[,c(1,2)], digits = 2)
+knitr::kable(a, caption = 'Summary of PCA II')
+
+```
+
+
+## Multiple Correspondance Analysis
+
+
+```{r}
+
+## Get the data
+library(FactoMineR)
+data("tea")
+
+```
+
+
+Now, let us examine a new dataset *tea* from the package *Factominer*. The data relates to a questionnaire about tea consumption. It has 300 observations and 36 variables. The variables include questions about how the tea is consumed and percieved, as well as few individual attributes. We are not going to analysise the entire dataset, instead we have selected 9 most interesting variables.  
+
+```{r}
+
+## Select interesting variables
+library(dplyr)
+keep_columns <- c("sex", "how", "sugar", "How", "escape.exoticism", "diuretic", "breakfast", 
+                  "lunch", "sophisticated")
+tea_time <- select(tea,one_of(keep_columns))
+
+## Summary and structure
+summary(tea_time)
+str(tea_time)
+
+## visualize the dataset
+library(tidyr)
+library(ggplot2)
+gather(tea_time) %>% ggplot(aes(value)) + facet_wrap("key", scales = "free") + geom_bar() + 
+      theme(axis.text.x = element_text(angle = 45, hjust = 1, size = 8)) 
+
+```
+
+Next, lets perform the MCA on our data. The summary of our analysis is seen below. The eigenvalues tell us how much of the variance is retained by each dimension. We can see that half of the variance is retained by the 5 first dimensions. We can also note that none of the variables is highly associated with the three dimensions. This can be seen from the *categorical values* section, as none of the values is close to one. 
+
+```{r}
+
+## MCA
+mca <- MCA(tea_time, graph = FALSE)
+
+# summary of the model
+summary(mca)
+
+
+```
+
+Finally, we will plot both the variables and the individuals. From the individual plot we can say, that there aren't really any observations that stand out. The variable plot, on the other hand, we can see that, for example *unpackaged* differs from the rest. 
+
+```{r}
+
+# visualize MCA
+plot(mca, invisible=c("ind"), habillage = "quali")
+plot(mca, invisible=c("var"))
+
+```
+
+
