@@ -1,0 +1,205 @@
+# Analysis of Longitudinal Data
+
+```{r setup 3, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning=FALSE)
+```
+
+## Introducing the Data
+
+
+```{r}
+
+## Get the data
+setwd("/home/meeri/ODS/Data")
+RATSL <- read.csv("RATSL.csv")
+BPRSL<- read.csv("BPRSL.csv")
+
+# Factor 
+RATSL$ID <- factor(RATSL$ID)
+RATSL$Group <- factor(RATSL$Group)
+BPRSL$treatment <- factor(BPRSL$treatment)
+BPRSL$subject <- factor(BPRSL$subject)
+```
+
+
+This week we are going to explore two datasets. The first one has information about rats and their weights. This dataset has`r dim(RATSL)[[1]] ` countries and `r dim(RATSL)[[2]] ` variables. Here is the list of our variables:
+
+```{r}
+
+colnames(RATSL)
+
+```
+
+The second dataset has information about 40 male subjects were randomly assigned to one of two treatment groups and each subject was rated on the brief psychiatric rating scale (BPRS) measured before treatment began and then at weekly intervals for eight weeks. This dataset has`r dim(BPRSL)[[1]] ` countries and `r dim(BPRSL)[[2]] ` variables. Here is the list of our variables:
+
+
+
+
+```{r}
+
+colnames(BPRSL)
+
+```
+
+## Explore the RATS data
+
+Let's display the data graphically in order to expose patterns in the data. Below we can see the evolution of the weights of the rats in each three groups.
+
+```{r}
+
+
+# Draw the plot
+library(ggplot2)
+ggplot(RATSL, aes(x = Time, y = Weight, linetype = ID)) +
+  geom_line() +
+  facet_grid(. ~ Group, labeller = label_both) +
+  theme(legend.position = "none") 
+
+```
+
+
+Now, lets standardize the data and plot it again. Now the different evolutions are easier to observe. It would also seem that there is one outlier in each group. 
+
+```{r}
+library(dplyr)
+library(tidyr)
+# Standardise the variable bprs
+RATSL <- RATSL %>%
+  group_by(Group) %>%
+  mutate(stdweight = (Weight - mean(Weight))/sd(Weight) ) %>%
+  ungroup()
+
+# Plot again with the standardised data
+ggplot(RATSL , aes(x = Time, y = stdweight, linetype = ID)) +
+  geom_line() +
+  scale_linetype_manual(values = rep(1:10, times=4)) +
+  facet_grid(. ~ Group, labeller = label_both) +
+  scale_y_continuous(name = "standardized weight")
+
+
+```
+
+Next, we will draw another type of a plot in order to help us examine our data. With large numbers of observations, this kind of showing averages  and standard errors might be more suitable. We can make the remarkss that the groups 2 and 3 seem to be more similiar with each other than with group 1.
+
+```{r}
+# Number of weeks, baseline  included
+n <- RATSL$Time %>% unique() %>% length()
+
+# Summary data with mean and standard error of bprs by treatment and week 
+RATSL1 <- RATSL %>%
+  group_by(Group, Time) %>%
+  summarise( mean = mean(Weight), se = sd(Weight)/sqrt(n) ) %>% ungroup()
+
+# Plot the mean profiles
+ggplot(RATSL1, aes(x = Time, y = mean, linetype = Group, shape = Group)) +
+  geom_line() +
+  scale_linetype_manual(values = c(1,2,3)) +
+  geom_point(size=3) +
+  scale_shape_manual(values = c(1,2,3)) +
+  geom_errorbar(aes(ymin=mean-se, ymax=mean+se, linetype="1"), width=0.3) +
+  theme(legend.position = c(0.8,0.8)) +
+  scale_y_continuous(name = "mean(Weight) +/- se(Weight)")
+```
+
+
+Datasets might contain outliers that can cause bias in our analysis. It can be useful to delete these observations from the data before continueing the analysis. We will draw three boxplots in order to find out wheter our data has any.  There is one observation that stands out. We will delete it and draw new boxplots. 
+
+```{r}
+# Create a summary data by treatment and subject with mean as the summary variable (ignoring baseline week 0).
+RATSLS <- RATSL %>%
+  filter(Time > 1) %>%
+  group_by(Group, ID) %>%
+  summarise( mean=mean(Weight) ) %>%
+  ungroup()
+
+
+# Draw a boxplot of the mean versus treatment
+ggplot(RATSLS, aes(x = Group, y = mean)) +
+  geom_boxplot() +
+  stat_summary(fun.y = "mean", geom = "point", shape=23, size=4, fill = "white") +
+  scale_y_continuous(name = "mean(Weight), Time ")
+```
+
+
+
+```{r}
+# Create a new data by filtering the outlier and adjust the ggplot code the draw the plot again with the new data
+RATSLS2 <- RATSLS %>%
+  filter(mean < 550 )
+
+ggplot(RATSLS2, aes(x = Group, y = mean)) +
+  geom_boxplot() +
+  stat_summary(fun.y = "mean", geom = "point", shape=23, size=4, fill = "white") +
+  scale_y_continuous(name = "mean(Weight), Time ")
+
+```
+
+
+Lastly, we will study the statistical relationships in our data. Accoring to these results, the variable basline has statistically significant relationship with our dependant variable, while the group of individual is significant only at 10% level. This did not work for some reason when i tried to knit it
+
+
+
+
+
+
+## Explore the BPRSL data
+
+
+
+```{r}
+
+# Factor 
+BPRSL$treatment <- factor(BPRSL$treatment)
+BPRSL$subject <- factor(BPRSL$subject)
+
+# Plot the data
+ggplot(BPRSL, aes(x = week, y = bprs, linetype = subject)) +
+  geom_line() + scale_x_continuous(name = "Time (weeks)") + 
+      scale_y_continuous(name = "bprs") + theme(legend.position = "top")
+
+```
+
+
+```{r}
+# create a regression model 
+BPRSL_reg <- lm(bprs ~ week + treatment, BPRSL)
+
+# print out a summary of the model
+summary(BPRSL_reg)
+```
+
+```{r}
+
+# access library lme4
+library(lme4)
+
+# Create a random intercept model
+BPRSL_ref <- lmer(bprs ~ week + treatment + (1 | subject), data = BPRSL, REML = FALSE)
+
+# Print the summary of the model
+summary(BPRSL_ref)
+```
+
+
+```{r}
+# create a random intercept and random slope model
+BPRSL_ref1 <- lmer(bprs ~ week + treatment + (week | subject), data = BPRSL, REML = FALSE)
+
+# print a summary of the model
+summary(BPRSL_ref1)
+
+# perform an ANOVA test on the two models
+anova(BPRSL_ref1, BPRSL_ref)
+```
+
+```{r}
+# create a random intercept and random slope model
+BPRSL_ref2 <- lmer(bprs ~ week + treatment + (week | subject), data = BPRSL, REML = FALSE)
+
+# print a summary of the model
+summary(BPRSL_ref2)
+
+# perform an ANOVA test on the two models
+anova(BPRSL_ref2, BPRSL_ref1)
+```
+
